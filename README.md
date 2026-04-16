@@ -2,7 +2,7 @@
 
 **Free and unlimited folder copying for Google Drive.**
 
-→ **[Try the live version]([https://bit.ly/D3-drive-copier])**  
+→ **[Try the live version](https://bit.ly/D3-drive-copier)**  
 
 ---
 
