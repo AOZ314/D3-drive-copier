@@ -1,0 +1,2735 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      :root {
+        --border: rgba(148, 163, 184, 0.18);
+        --text:   #e5e7eb;
+        --muted:  #94a3b8;
+        --accent: #60a5fa;
+        --accent-2: #38bdf8;
+        --good:   #34d399;
+        --warn:   #fbbf24;
+        --bad:    #f87171;
+        --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+        --radius: 20px;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; overscroll-behavior: none;}
+
+      body {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left,  rgba(96, 165, 250, 0.16), transparent 30%),
+          radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 24%),
+          linear-gradient(180deg, #020617 0%, #0f172a 100%);
+        background-attachment: fixed;
+        color: var(--text);
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 20px;
+        padding: 24px 20px 20px;
+      }
+
+      /* ═══════════════════════════════════════════════════
+         HEADER — no card border, pure typography
+      ═══════════════════════════════════════════════════ */
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 0 4px 20px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      }
+
+      /* D3 logo mark — three stacked D shapes */
+      .logo-icon { flex-shrink: 0; }
+
+      .logo-text { display: flex; flex-direction: column; gap: 3px; }
+
+      .logo-wordmark {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        padding-top: 6px;       /* room for the <sup> to breathe above */
+        overflow: visible;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .logo-wordmark sup {
+        font-size: 0.58em;
+        vertical-align: super;
+        line-height: 0;
+        letter-spacing: 0;
+      }
+
+      .logo-tagline {
+        color: var(--muted);
+        font-size: 0.82rem;
+        letter-spacing: 0.01em;
+        line-height: 1.3;
+      }
+
+      /* ── Account avatar ── */
+      .account-wrap {
+        margin-left: auto;   /* push to far right of header */
+        position: relative;
+        flex-shrink: 0;
+      }
+
+      .account-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: #0f172a;
+        font-size: 0.88rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 2px solid rgba(96, 165, 250, 0.35);
+        transition: border-color 0.15s, transform 0.12s;
+        user-select: none;
+        letter-spacing: 0;
+      }
+
+      .account-avatar:hover {
+        border-color: rgba(96, 165, 250, 0.7);
+        transform: scale(1.07);
+      }
+
+      .account-avatar.loading {
+        opacity: 0.45;
+        cursor: default;
+        background: rgba(148, 163, 184, 0.2);
+      }
+
+      .account-popover {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        min-width: 240px;
+        background: linear-gradient(180deg, rgba(15,23,42,0.98), rgba(15,23,42,0.96));
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 14px;
+        box-shadow: 0 16px 48px rgba(0,0,0,0.45);
+        backdrop-filter: blur(14px);
+        z-index: 500;
+        overflow: hidden;
+        animation: preflightIn 0.15s ease;
+      }
+
+      .account-popover-head {
+        padding: 14px 16px 10px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      }
+
+      .account-popover-email {
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: var(--text);
+        word-break: break-all;
+        line-height: 1.35;
+      }
+
+      .account-popover-note {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 3px;
+        line-height: 1.35;
+      }
+
+      /* ═══════════════════════════════════════════════════
+         MAIN GRID
+      ═══════════════════════════════════════════════════ */
+      .main-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(290px, 0.75fr);
+        gap: 14px;
+        align-items: start;
+      }
+
+      .main-grid > .card { height: 100%; }
+
+      /* ═══════════════════════════════════════════════════
+         CARDS
+      ═══════════════════════════════════════════════════ */
+      .card {
+        background: linear-gradient(180deg, rgba(15,23,42,0.84), rgba(15,23,42,0.72));
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(14px);
+      }
+
+      .card-header {
+        padding: 16px 18px 10px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      }
+
+      .card-header h2, .card-header h3 { margin: 0; font-size: 1rem; }
+
+      .card-header .sub {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.45;
+      }
+
+      .card-body { padding: 16px 18px 18px; }
+
+      /* ═══════════════════════════════════════════════════
+         BUTTONS
+      ═══════════════════════════════════════════════════ */
+      .button-row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+      button {
+        appearance: none;
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        background: linear-gradient(180deg, rgba(30,41,59,0.98), rgba(15,23,42,0.98));
+        color: var(--text);
+        padding: 10px 14px;
+        border-radius: 14px;
+        font: inherit;
+        font-size: 0.88rem;
+        cursor: pointer;
+        transition: transform 0.14s, border-color 0.14s, opacity 0.14s;
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        border-color: rgba(96, 165, 250, 0.55);
+      }
+
+      button:disabled { opacity: 0.38; cursor: not-allowed; }
+
+      .btn-primary {
+        background: linear-gradient(180deg, #2563eb, #1d4ed8);
+        border-color: rgba(96, 165, 250, 0.65);
+      }
+
+      .btn-ghost  { background: rgba(15, 23, 42, 0.55); }
+
+      .btn-accent {
+        background: linear-gradient(180deg, #0ea5e9, #0284c7);
+        border-color: rgba(56, 189, 248, 0.65);
+      }
+
+      .btn-danger {
+        background: linear-gradient(180deg, rgba(127,29,29,0.8), rgba(127,29,29,0.6));
+        border-color: rgba(248, 113, 113, 0.4);
+        color: var(--bad);
+      }
+
+      /* ═══════════════════════════════════════════════════
+         FOLDER BROWSER
+      ═══════════════════════════════════════════════════ */
+      .grid-two {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .field { display: flex; flex-direction: column; gap: 6px; }
+
+      .label {
+        color: var(--muted);
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .value-box {
+        min-height: 48px;
+        padding: 10px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(148,163,184,0.18);
+        background: rgba(2,6,23,0.28);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .value-box .name { font-weight: 600; word-break: break-word; font-size: 0.92rem; }
+      .value-box .meta { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+
+      .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+      .toolbar .spacer { flex: 1; }
+
+      /* Breadcrumb */
+      .path {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+        color: var(--muted);
+        font-size: 0.82rem;
+        min-height: 1.4em;
+      }
+
+      .crumb { color: var(--muted); cursor: pointer; }
+      .crumb:hover { color: var(--text); text-decoration: underline; }
+      .crumb.active { color: rgba(148,163,184,0.65); cursor: default; }
+      .crumb.active:hover { text-decoration: none; }
+      .separator { color: rgba(148,163,184,0.35); }
+
+      /* Browser pane */
+      .browser-pane {
+        border-radius: 16px;
+        border: 1px solid rgba(148,163,184,0.16);
+        background: rgba(2,6,23,0.24);
+        overflow: hidden;
+      }
+
+      .browser-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(148,163,184,0.12);
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .folder-list { max-height: 340px; overflow-y: auto; }
+
+      .folder-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 11px 14px;
+        border-bottom: 1px solid rgba(148,163,184,0.07);
+        cursor: pointer;
+        transition: background 0.1s;
+      }
+
+      .folder-row:hover   { background: rgba(96,165,250,0.07); }
+      .folder-row.selected { background: rgba(56,189,248,0.14); outline: 1px solid rgba(56,189,248,0.22); }
+
+      .folder-name { font-weight: 600; word-break: break-word; font-size: 0.91rem; }
+      .folder-meta { margin-top: 3px; font-size: 0.8rem; color: var(--muted); }
+      .empty-state { padding: 20px 14px; color: var(--muted); text-align: center; font-size: 0.88rem; }
+
+      /* ═══════════════════════════════════════════════════
+         SETTINGS + ALERTS PANEL
+      ═══════════════════════════════════════════════════ */
+      .panel-stack { display: grid; gap: 14px; height: 100%; }
+
+      .toggle-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 11px 0;
+        border-bottom: 1px solid rgba(148,163,184,0.1);
+      }
+
+      .toggle-line:last-child { border-bottom: none; }
+      .toggle-line .copy { display: flex; flex-direction: column; gap: 3px; }
+      .toggle-line .copy strong { font-size: 0.92rem; }
+      .toggle-line .copy span { color: var(--muted); font-size: 0.82rem; line-height: 1.35; }
+
+      .switch {
+        width: 44px; height: 26px;
+        border-radius: 999px;
+        position: relative;
+        background: rgba(148,163,184,0.25);
+        border: 1px solid rgba(148,163,184,0.22);
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+
+      .switch input { display: none; }
+
+      .switch .knob {
+        position: absolute;
+        top: 3px; left: 3px;
+        width: 18px; height: 18px;
+        border-radius: 50%;
+        background: white;
+        transition: transform 0.15s;
+      }
+
+      .switch input:checked + .knob { transform: translateX(18px); }
+      .switch.on { background: rgba(34,197,94,0.38); }
+
+      .alerts {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 260px;
+        overflow-y: auto;
+        padding-right: 2px;
+      }
+
+      .alert-item {
+        padding: 9px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(148,163,184,0.14);
+        background: rgba(2,6,23,0.25);
+        flex-shrink: 0;
+      }
+
+      .alert-item .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 3px;
+      }
+
+      .alert-item .title { font-weight: 700; font-size: 0.88rem; }
+      .alert-item .body  { color: var(--muted); font-size: 0.84rem; line-height: 1.4; }
+
+      .alert-item.info  { border-color: rgba(59,130,246,0.28); }
+      .alert-item.warn  { border-color: rgba(251,191,36,0.32); }
+      .alert-item.error { border-color: rgba(248,113,113,0.32); }
+      .alert-item.good  { border-color: rgba(52,211,153,0.32); }
+
+      /* Alert action buttons */
+      .alert-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+      .alert-action-btn {
+        padding: 4px 11px !important;
+        font-size: 0.78rem !important;
+        border-radius: 8px !important;
+      }
+
+      /* ═══════════════════════════════════════════════════
+         QUEUE / STATUS SECTION
+      ═══════════════════════════════════════════════════ */
+      .status-card {
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(15,23,42,0.9), rgba(15,23,42,0.78));
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .queue-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .queue-counts { display: flex; gap: 5px; flex-wrap: wrap; }
+
+      .count-pill {
+        padding: 2px 9px;
+        border-radius: 999px;
+        font-size: 0.73rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .count-pill.running  { background: rgba(96,165,250,0.16);  color: var(--accent); }
+      .count-pill.pending  { background: rgba(148,163,184,0.14); color: var(--muted);  }
+      .count-pill.paused   { background: rgba(251,191,36,0.16);  color: var(--warn);   }
+      .count-pill.done     { background: rgba(52,211,153,0.16);  color: var(--good);   }
+      .count-pill.error    { background: rgba(248,113,113,0.16); color: var(--bad);    }
+      .count-pill.skipped  { background: rgba(148,163,184,0.12); color: var(--muted);  }
+
+      .status-body { padding: 16px; display: grid; gap: 14px; }
+
+      /* Global progress bar */
+      .progress-wrap { display: grid; gap: 6px; }
+
+      .progress-bar {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(148,163,184,0.16);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .progress-bar > div {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        transition: width 0.3s ease;
+        border-radius: 999px;
+      }
+
+      .progress-label {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      /* ═══════════════════════════════════════════════════
+         JOB LIST
+      ═══════════════════════════════════════════════════ */
+      .job-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 420px;
+        overflow-y: auto;
+        padding-right: 2px;
+      }
+
+      .empty-queue {
+        padding: 22px 14px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 0.88rem;
+        line-height: 1.55;
+      }
+
+      /* ── Job card ── */
+      .job-card {
+        border-radius: 14px;
+        border: 1px solid rgba(148,163,184,0.13);
+        background: rgba(2,6,23,0.3);
+        overflow: hidden;
+        flex-shrink: 0;
+        transition: border-color 0.25s;
+      }
+
+      .job-card.pending   { border-color: rgba(148,163,184,0.18); }
+      .job-card.running   { border-color: rgba(96,165,250,0.3); }
+      .job-card.paused    { border-color: rgba(251,191,36,0.3); }
+      .job-card.done      { border-color: rgba(52,211,153,0.3); }
+      .job-card.skipped   { border-color: rgba(52,211,153,0.22); }
+      .job-card.error     { border-color: rgba(248,113,113,0.3); }
+      .job-card.cancelled { opacity: 0.48; }
+      /* Clear button inside a faded card must not inherit the reduced opacity */
+      .job-card.cancelled .job-actions button { opacity: 1; }
+
+      .job-card-inner { padding: 12px 14px; display: grid; gap: 8px; }
+
+      .job-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .job-route {
+        font-weight: 600;
+        font-size: 0.89rem;
+        word-break: break-all;
+        flex: 1;
+        line-height: 1.35;
+      }
+
+      .job-badge {
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 0.71rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .job-badge.pending   { background: rgba(148,163,184,0.16); color: var(--muted); }
+      .job-badge.running   { background: rgba(96,165,250,0.18);  color: var(--accent); }
+      .job-badge.paused    { background: rgba(251,191,36,0.18);  color: var(--warn); }
+      .job-badge.done      { background: rgba(52,211,153,0.18);  color: var(--good); }
+      .job-badge.error     { background: rgba(248,113,113,0.18); color: var(--bad); }
+      .job-badge.cancelled { background: rgba(148,163,184,0.1);  color: rgba(148,163,184,0.4); }
+      .job-badge.skipped   { background: rgba(52,211,153,0.18);  color: var(--good); }
+
+      /* Per-job thin bar */
+      .job-bar-wrap {
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(148,163,184,0.13);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .job-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        transition: width 0.35s ease;
+      }
+
+      .job-card.done   .job-bar-fill { background: linear-gradient(90deg, var(--good), #6ee7b7); }
+      .job-card.skipped .job-bar-fill { background: linear-gradient(90deg, var(--good), #6ee7b7); }
+      .job-card.error  .job-bar-fill { background: var(--bad); }
+      .job-card.paused .job-bar-fill { background: var(--warn); }
+
+      /* Skipped-files overflow segment — orange, starts where the green fill ends */
+      .job-bar-skip {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        border-radius: 999px;
+        background: rgba(251, 146, 60, 0.8);
+        transition: width 0.35s ease, left 0.35s ease;
+        pointer-events: none;
+      }
+
+      .job-meta {
+        color: var(--muted);
+        font-size: 0.8rem;
+        line-height: 1.45;
+      }
+
+      .job-phase {
+        color: rgba(148,163,184,0.55);
+        font-size: 0.77rem;
+        margin-top: 2px;
+      }
+
+      .job-error-box {
+        padding: 6px 10px;
+        border-radius: 9px;
+        background: rgba(248,113,113,0.08);
+        border: 1px solid rgba(248,113,113,0.18);
+        color: var(--bad);
+        font-size: 0.79rem;
+        line-height: 1.4;
+        word-break: break-word;
+      }
+
+      .job-actions { display: flex; gap: 5px; }
+      .job-actions button { padding: 5px 11px; font-size: 0.78rem; border-radius: 9px; }
+
+      /* ═══════════════════════════════════════════════════
+         INDETERMINATE ANIMATION
+         Used for pending/scanning states where total = 0
+      ═══════════════════════════════════════════════════ */
+      @keyframes indeterminate {
+        0%   { left: -50%; width: 45%; }
+        100% { left: 110%; width: 45%; }
+      }
+
+      .indeterminate .job-bar-fill,
+      .progress-bar.scanning > div {
+        position: absolute !important;
+        animation: indeterminate 1.6s ease-in-out infinite;
+        width: 45% !important;
+        transition: none !important;
+      }
+
+      .hidden { display: none !important; }
+
+      /* ── Queuing notice (shown while enqueueJob is in flight) ── */
+      .queue-notice {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px dashed rgba(96, 165, 250, 0.3);
+        background: rgba(96, 165, 250, 0.05);
+        color: var(--muted);
+        font-size: 0.86rem;
+        flex-shrink: 0;
+      }
+
+      .queue-notice strong { color: var(--text); }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .notice-spin {
+        display: inline-block;
+        animation: spin 1s linear infinite;
+        font-style: normal;
+      }
+
+      /* ── Per-job settings tags ── */
+      .job-settings {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 1px;
+      }
+
+      .settings-tag {
+        padding: 1px 7px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        color: rgba(148, 163, 184, 0.6);
+        background: rgba(2, 6, 23, 0.2);
+        white-space: nowrap;
+      }
+
+      /* ── Background-copy info banner — non-blocking, dismissible ──
+         Slots into the job list area; does not block UI interaction. */
+      .bg-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(96, 165, 250, 0.38);
+        background: linear-gradient(135deg, rgba(30,58,138,0.28), rgba(7,89,133,0.18));
+        flex-shrink: 0;
+        animation: bannerIn 0.3s ease;
+      }
+
+      @keyframes bannerIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      .bg-banner-icon { font-size: 1.5rem; line-height: 1; flex-shrink: 0; padding-top: 1px; }
+
+      .bg-banner-body { flex: 1; }
+
+      .bg-banner-title {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--accent);
+        margin-bottom: 5px;
+      }
+
+      .bg-banner-text {
+        font-size: 0.84rem;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .bg-banner-text strong { color: var(--text); }
+
+      .bg-banner-dismiss {
+        flex-shrink: 0;
+        background: none;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        color: var(--muted);
+        padding: 3px 9px;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        cursor: pointer;
+        transition: border-color 0.14s, color 0.14s;
+        align-self: flex-start;
+      }
+
+      .bg-banner-dismiss:hover {
+        border-color: rgba(148, 163, 184, 0.5);
+        color: var(--text);
+        transform: none;
+      }
+
+      /* ═══════════════════════════════════════════════════
+         PREFLIGHT MODAL
+         User-triggered modal — blocking is correct here
+         because the user explicitly clicked "Start copy"
+         and must confirm before the job is created.
+      ═══════════════════════════════════════════════════ */
+      .preflight-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.82);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+        backdrop-filter: blur(4px);
+      }
+
+      .preflight-box {
+        background: linear-gradient(180deg, rgba(15,23,42,0.98), rgba(15,23,42,0.95));
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: var(--radius);
+        box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+        width: 100%;
+        max-width: 460px;
+        overflow: hidden;
+        animation: preflightIn 0.2s ease;
+      }
+
+      @keyframes preflightIn {
+        from { opacity: 0; transform: scale(0.97) translateY(6px); }
+        to   { opacity: 1; transform: scale(1)    translateY(0); }
+      }
+
+      .preflight-header {
+        padding: 18px 22px 14px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      }
+
+      .preflight-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 5px;
+      }
+
+      .preflight-route {
+        font-size: 0.84rem;
+        color: var(--muted);
+        word-break: break-word;
+        line-height: 1.4;
+      }
+
+      .preflight-route .arrow { opacity: 0.4; margin: 0 4px; }
+
+      .preflight-loading {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 26px 22px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      @keyframes scanSpin { to { transform: rotate(360deg); } }
+      .scan-spinner {
+        width: 20px; height: 20px;
+        border: 2px solid rgba(96, 165, 250, 0.2);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: scanSpin 0.85s linear infinite;
+        flex-shrink: 0;
+      }
+
+      .preflight-body { padding: 16px 22px 4px; }
+
+      .preflight-stat {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.07);
+        font-size: 0.87rem;
+      }
+
+      .preflight-stat:last-of-type { border-bottom: none; }
+      .preflight-stat .stat-label  { color: var(--muted); }
+      .preflight-stat .stat-value  { font-weight: 600; color: var(--text); text-align: right; }
+
+      .risk-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 10px;
+        border: 1px solid;
+        font-size: 0.84rem;
+        margin: 10px 0 4px;
+        line-height: 1.35;
+      }
+
+      .risk-badge.good  { border-color: rgba(52,211,153,0.3);  background: rgba(52,211,153,0.06);  color: var(--good); }
+      .risk-badge.warn  { border-color: rgba(251,191,36,0.3);  background: rgba(251,191,36,0.06);  color: var(--warn); }
+      .risk-badge.bad   { border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.06); color: var(--bad); }
+      .risk-badge.muted { border-color: rgba(148,163,184,0.2); background: rgba(148,163,184,0.04); color: var(--muted); }
+
+      .preflight-divider {
+        height: 1px;
+        background: rgba(148, 163, 184, 0.1);
+        margin: 14px 0 12px;
+      }
+
+      .preflight-section-label {
+        font-size: 0.74rem;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      /* Conflict strategy segmented picker */
+      .conflict-picker {
+        display: flex;
+        gap: 6px;
+      }
+
+      .conflict-option { flex: 1; }
+      .conflict-option input[type="radio"] { display: none; }
+
+      .conflict-option label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        padding: 9px 8px;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: rgba(15, 23, 42, 0.5);
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s;
+        text-align: center;
+        user-select: none;
+      }
+
+      .conflict-option input:checked + label {
+        border-color: rgba(96, 165, 250, 0.55);
+        background: rgba(96, 165, 250, 0.1);
+      }
+
+      .conflict-option label:hover { border-color: rgba(96, 165, 250, 0.38); }
+
+      .conflict-option .opt-title {
+        font-weight: 600;
+        font-size: 0.82rem;
+        color: var(--text);
+      }
+
+      .conflict-option .opt-desc {
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.3;
+      }
+
+      .preflight-footer {
+        display: flex;
+        gap: 10px;
+        padding: 14px 22px 18px;
+        border-top: 1px solid rgba(148, 163, 184, 0.1);
+        margin-top: 16px;
+      }
+
+      .preflight-footer button { flex: 1; justify-content: center; }
+
+      /* ═══════════════════════════════════════════════════
+         ADVANCED SETTINGS MODAL
+         Reuses preflight overlay/box patterns.
+      ═══════════════════════════════════════════════════ */
+      .adv-section-label {
+        font-size: 0.74rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 16px 0 8px;
+      }
+
+      .adv-section-label:first-child { margin-top: 0; }
+
+      .adv-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+      }
+
+      .adv-row:last-child { border-bottom: none; }
+
+      .adv-row .copy { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+      .adv-row .copy strong { font-size: 0.9rem; }
+      .adv-row .copy span   { color: var(--muted); font-size: 0.8rem; line-height: 1.35; }
+
+      .adv-select {
+        appearance: none;
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        color: var(--text);
+        padding: 6px 28px 6px 10px;
+        border-radius: 9px;
+        font: inherit;
+        font-size: 0.84rem;
+        cursor: pointer;
+        flex-shrink: 0;
+        min-width: 110px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 9px center;
+        transition: border-color 0.14s;
+      }
+
+      .adv-select:focus {
+        outline: none;
+        border-color: rgba(96, 165, 250, 0.55);
+      }
+
+      .adv-placeholder {
+        opacity: 0.4;
+        font-size: 0.78rem;
+        font-style: italic;
+        flex-shrink: 0;
+      }
+
+      /* ═══════════════════════════════════════════════════
+         STORAGE DISPLAY
+      ═══════════════════════════════════════════════════ */
+      .storage-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 8px;
+        font-size: 0.8rem;
+        color: var(--muted);
+        flex-wrap: wrap;
+      }
+
+      .storage-track {
+        flex: 1;
+        min-width: 80px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.14);
+        overflow: hidden;
+      }
+
+      .storage-fill {
+        height: 100%;
+        border-radius: 0;
+        transition: width 0.5s ease, background-color 0.4s;
+      }
+
+      .storage-fill.good { background: var(--good); }
+      .storage-fill.warn { background: var(--warn); }
+      .storage-fill.bad  { background: var(--bad);  }
+
+      /* Pending-copy segment sits immediately after the used fill */
+      .storage-fill-pending {
+        height: 100%;
+        background: rgba(52, 211, 153, 0.28);   /* desaturated green — distinct from used but not alarming */
+        transition: width 0.5s ease;
+        border-radius: 0;
+        flex-shrink: 0;
+      }
+
+      .storage-label { white-space: nowrap; }
+
+      /* ═══════════════════════════════════════════════════
+         RESPONSIVE — mobile-first adjustments
+         Breakpoints: 980px (narrow desktop/tablet), 640px (phone)
+      ═══════════════════════════════════════════════════ */
+      @media (max-width: 980px) {
+        .main-grid, .grid-two { grid-template-columns: 1fr; }
+        /* Settings+Alerts above folder browser on narrow screens */
+        .main-grid > .card        { order: 2; }
+        .main-grid > .panel-stack { order: 1; }
+        .header { flex-direction: row; }
+      }
+
+      @media (max-width: 640px) {
+        .app { padding: 14px 12px 16px; gap: 14px; }
+
+        /* Header — shrink logo on phones */
+        .logo-icon { width: 38px; height: 32px; }
+        .logo-wordmark { font-size: 1.55rem; }
+        .logo-tagline { display: none; }   /* too long for phone header */
+
+        /* Cards — tighter padding */
+        .card-header { padding: 12px 14px 8px; }
+        .card-body   { padding: 12px 14px 14px; }
+
+        /* Buttons — touch-friendly minimum target size */
+        button { padding: 11px 13px; font-size: 0.85rem; }
+        .job-actions button { padding: 8px 10px; }
+
+        /* Folder browser */
+        .folder-list { max-height: 220px; }
+        .folder-row  { padding: 10px 12px; }
+
+        /* Job list */
+        .job-list { max-height: 320px; }
+
+        /* Queue controls — full-width stack on phones */
+        .button-row { flex-direction: column; }
+        .button-row button { width: 100%; justify-content: center; }
+
+        /* Conflict picker — 2×2 grid on phones (4 options too tight in a row) */
+        .conflict-picker { flex-wrap: wrap; }
+        .conflict-option { flex: 1 1 45%; }
+
+        /* Preflight / advanced settings modals — full-width on phones */
+        .preflight-box { max-width: 100% !important; border-radius: 14px; }
+        .preflight-footer { flex-direction: column; }
+        .preflight-footer button { width: 100%; }
+
+        /* Advanced settings modal rows — stack label + control vertically */
+        .adv-row { flex-wrap: wrap; gap: 8px; }
+        .adv-select { min-width: 0; width: 100%; }
+
+        /* Account popover — full width on phones */
+        .account-popover { min-width: 0; width: calc(100vw - 32px); right: auto; left: 50%; transform: translateX(-50%); }
+
+        /* Storage/quota rows */
+        .storage-row { gap: 6px; }
+        .storage-track { min-width: 50px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+
+      <!-- ═══ HEADER — wordmark, no card border ═══ -->
+      <header class="header">
+        <!-- D3 logo: three overlapping D shapes in blue gradient -->
+        <svg class="logo-icon" viewBox="0 0 52 44" width="52" height="44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="dg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#60a5fa"/>
+              <stop offset="100%" stop-color="#38bdf8"/>
+            </linearGradient>
+          </defs>
+          <!-- Back D (most transparent) -->
+          <path d="M 18 4 L 18 40 L 26 40 Q 46 40 46 22 Q 46 4 26 4 Z" fill="url(#dg)" opacity="0.18"/>
+          <!-- Middle D -->
+          <path d="M 11 4 L 11 40 L 19 40 Q 39 40 39 22 Q 39 4 19 4 Z" fill="url(#dg)" opacity="0.42"/>
+          <!-- Front D -->
+          <path d="M 4 4 L 4 40 L 12 40 Q 32 40 32 22 Q 32 4 12 4 Z" fill="url(#dg)" opacity="1"/>
+        </svg>
+
+        <div class="logo-text">
+          <div class="logo-wordmark">D<sup>3</sup></div>
+          <div class="logo-tagline">Duplicate Directories in Drive &nbsp;·&nbsp; free and unlimited folder copying</div>
+        </div>
+
+        <!-- Account avatar -->
+        <div class="account-wrap" id="accountWrap">
+          <div class="account-avatar loading" id="accountAvatar" onclick="toggleAccountPopover()" title="Account">…</div>
+        </div>
+      </header>
+
+      <!-- ═══ MAIN GRID ═══ -->
+      <section class="main-grid">
+
+        <!-- ── Folder browser ── -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Folder selection</h2>
+            <div class="sub">Browse My Drive or Shared with me, pick a folder, then assign it as source or destination.</div>
+          </div>
+          <div class="card-body">
+            <div class="toolbar">
+              <button class="btn-ghost" onclick="goHome()">⌂ Home</button>
+              <button class="btn-ghost" onclick="goUp()">↑ Up</button>
+              <button class="btn-ghost" onclick="enterSelected()">↓ Enter</button>
+              <div class="spacer"></div>
+            </div>
+
+            <div class="path" id="breadcrumbPath"></div>
+
+            <div class="browser-pane">
+              <div class="browser-head">
+                <div id="browserTitle">Home</div>
+                <div id="browserHint">Single-click to select · Double-click to enter</div>
+              </div>
+              <div id="folderList" class="folder-list">
+                <div class="empty-state">Loading…</div>
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="grid-two">
+              <div class="field">
+                <div class="label">Source</div>
+                <div class="value-box">
+                  <div>
+                    <div id="sourceName" class="name">None</div>
+                    <div id="sourceMeta" class="meta">Pick a folder and assign it as source.</div>
+                  </div>
+                  <button class="btn-accent" id="useSourceBtn" onclick="useSelectedAs('source')" disabled>Use selected</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="label">Destination</div>
+                <div class="value-box">
+                  <div>
+                    <div id="targetName" class="name">None</div>
+                    <div id="targetMeta" class="meta">Pick a folder and assign it as destination.</div>
+                  </div>
+                  <button class="btn-accent" id="useTargetBtn" onclick="useSelectedAs('target')" disabled>Use selected</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Settings + Alerts ── -->
+        <div class="panel-stack">
+          <section class="card">
+            <div class="card-header">
+              <h3>New job settings</h3>
+              <div class="sub">These apply to the next job you add to the queue. Each job remembers its own settings.</div>
+            </div>
+            <div class="card-body">
+              <div class="toggle-line">
+                <div class="copy">
+                  <strong>Copy permissions</strong>
+                  <span>Reapply editors, viewers, and sharing where possible.</span>
+                </div>
+                <label class="switch" id="copyPermSwitch">
+                  <input id="copyPermissions" type="checkbox" onchange="syncSwitch('copyPermSwitch',this.checked)">
+                  <span class="knob"></span>
+                </label>
+              </div>
+              <div class="toggle-line">
+                <div class="copy">
+                  <strong>Copy Google files</strong>
+                  <span>Copy Docs, Sheets, Slides and Forms in native format.</span>
+                </div>
+                <label class="switch" id="copyGoogleSwitch">
+                  <input id="copyGoogleFiles" type="checkbox" onchange="syncSwitch('copyGoogleSwitch',this.checked)">
+                  <span class="knob"></span>
+                </label>
+              </div>
+              <div class="toggle-line">
+                <div class="copy">
+                  <strong>Advanced settings</strong>
+                  <span>Throttle speed, default conflict strategy, and power-user options.</span>
+                </div>
+                <button class="btn-ghost" onclick="openAdvancedSettings()">Open</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <h3>Alerts</h3>
+              <div class="sub">Errors, warnings, and copy-time notices appear here.</div>
+            </div>
+            <div class="card-body">
+              <div id="alertsPanel" class="alerts">
+                <div class="alert-item info">
+                  <div class="top"><div class="title">Ready</div><div class="meta" style="color:var(--muted);font-size:.8rem">info</div></div>
+                  <div class="body">Select a source and destination folder, then click Start copy.</div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- ═══ QUEUE ═══ -->
+      <section class="status-card">
+        <div class="card-header">
+          <div class="queue-header-row">
+            <h3>Queue</h3>
+            <div id="queueCounts" class="queue-counts"></div>
+          </div>
+          <div id="queueSub" class="sub">No jobs yet — add one above.</div>
+          <!-- Drive storage bar -->
+          <div id="storageRow" class="storage-row hidden">
+            <span class="storage-label" id="storageLabel"></span>
+            <div class="storage-track" style="display:flex;border-radius:999px;overflow:hidden">
+              <div class="storage-fill" id="storageFill"></div>
+              <div class="storage-fill-pending" id="storagePending" style="width:0%"></div>
+            </div>
+            <span id="storagePct" style="white-space:nowrap"></span>
+          </div>
+          <!-- Drive API quota (raw call counts) -->
+          <div id="quotaRow" class="storage-row hidden" style="margin-top:4px;flex-wrap:wrap;gap:6px">
+            <span id="quotaLabel" style="white-space:nowrap;color:var(--muted);font-size:0.8rem"></span>
+            <span id="quotaNote"  style="color:rgba(148,163,184,0.45);font-size:0.75rem;font-style:italic"></span>
+          </div>
+        </div>
+
+        <div class="status-body">
+          <!-- Global progress bar -->
+          <div id="globalProgressWrap" class="progress-wrap hidden">
+            <div class="progress-bar" id="globalBarTrack"><div id="globalBar"></div></div>
+            <div class="progress-label">
+              <span id="globalProgressText"></span>
+              <span id="globalPercentText"></span>
+            </div>
+          </div>
+
+          <!-- Job list -->
+          <div id="jobList" class="job-list">
+            <div class="empty-queue">
+              No copy jobs yet.<br>
+              Browse to a folder, assign source and destination, then click <strong>Start copy</strong>.
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div class="button-row">
+            <button class="btn-primary" id="startBtn" onclick="startCopy()" disabled>▶ Start copy</button>
+            <button class="btn-ghost"   onclick="clearAllTerminal()">Clear all</button>
+            <button class="btn-ghost"   onclick="resetAllState()">Reset all</button>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- .app -->
+
+    <!-- ═══ FOOTER ═══ -->
+    <!-- Privacy policy link — paste your GitHub Pages privacy URL into the href below -->
+    <footer style="text-align:center;padding:10px 20px 18px;font-size:0.72rem;color:rgba(148,163,184,0.35)">
+      <a href="https://aoz314.github.io/D3-drive-copier/privacy.html"
+         target="_top"
+         style="color:rgba(148,163,184,0.35);text-decoration:none"
+         onmouseover="this.style.color='rgba(148,163,184,0.65)'"
+         onmouseout="this.style.color='rgba(148,163,184,0.35)'">
+        Privacy Policy
+      </a>
+      <a href="https://github.com/AOZ314/D3-drive-copier"
+         target="_top"
+         style="color:rgba(148,163,184,0.35);text-decoration:none"
+         onmouseover="this.style.color='rgba(148,163,184,0.65)'"
+         onmouseout="this.style.color='rgba(148,163,184,0.35)'">
+        &nbsp;·&nbsp; D3 — Duplicate Directories in Drive &nbsp;·&nbsp; open source
+      </a>
+    </footer>
+
+    <script>
+      // ─── Constants ─────────────────────────────────────────────────────────
+      const ROOT_TOKEN   = 'ROOT';
+      const SHARED_TOKEN = 'SHARED_ROOT';
+
+      // ─── Folder browser state ──────────────────────────────────────────────
+      let navStack         = [{ token: 'HOME', name: 'Home' }];
+      let currentView      = null;   // the currently-loaded folder view object
+      let currentSelection = null;   // the folder row the user has single-clicked
+
+      // ─── Job selection state ───────────────────────────────────────────────
+      let selectedSource = null;   // { id, name } assigned as copy source
+      let selectedTarget = null;   // { id, name } assigned as copy destination
+
+      // ─── Preflight state ───────────────────────────────────────────────────
+      // Two parallel backend calls (scanFolder + getStorageInfo) both write here;
+      // preflightPending counts down from 2 and renderPreflightResults fires when it hits 0.
+      let preflightScan    = null;
+      let preflightStorage = null;
+      let preflightPending = 0;
+
+      // ─── Polling & storage state ───────────────────────────────────────────
+      let pollTimer       = null;   // setInterval handle for the 2s job status poll
+      let storageTimer    = null;   // setInterval handle for the 30s storage poll
+      let lastStorageInfo = null;   // cached getStorageInfo result; re-rendered when pending bytes change
+      let pendingJobBytes = 0;      // sum of sizeBytes across pending/running jobs for the storage overlay
+
+      // ─── Job transition tracking ───────────────────────────────────────────
+      // Maps job ID → last known status. Used to fire one-shot alerts (e.g. → 'error')
+      // exactly once per transition rather than on every poll cycle.
+      let prevJobStates = {};
+
+      // ─── Session flags ─────────────────────────────────────────────────────
+      let hasShownBackgroundPopup = false;   // show bg-copy banner once per session
+
+      // ─── Advanced settings ─────────────────────────────────────────────────
+      // Loaded from the backend on page init; kept in memory as the live source
+      // of truth. Written back to backend only when the modal is saved.
+      let advancedSettings = {
+        throttle:          'normal',
+        defaultConflict:   'rename',
+        allowRootAsSource: false,
+        scheduledCopying:  false,
+        scheduleHour:      2,
+      };
+
+      // ─── Account info ──────────────────────────────────────────────────────
+      let appInfo = { email: '', appUrl: '' };
+
+      // ─── Utilities ─────────────────────────────────────────────────────────
+      function esc(t) {
+        return String(t)
+          .replaceAll('&','&amp;').replaceAll('<','&lt;')
+          .replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
+      }
+
+      function syncSwitch(id, checked) {
+        document.getElementById(id).classList.toggle('on', !!checked);
+      }
+
+      function addAlert(level, title, body, actions) {
+        const panel = document.getElementById('alertsPanel');
+        const item  = document.createElement('div');
+        item.className = 'alert-item ' + level;
+        // 'good' alerts skip the level badge — green border communicates tone.
+        // 'warn' displays as 'warning' for better readability.
+        const levelLabel = level === 'warn' ? 'warning' : level;
+        const badgeHtml  = (level === 'good')
+          ? ''
+          : '<div class="meta" style="color:var(--muted);font-size:.8rem">' + esc(levelLabel) + '</div>';
+        item.innerHTML =
+          '<div class="top">' +
+            '<div class="title">' + esc(title) + '</div>' +
+            badgeHtml +
+          '</div>' +
+          '<div class="body">' + esc(body) + '</div>' +
+          (actions && actions.length ? '<div class="alert-actions"></div>' : '');
+
+        // Action buttons use addEventListener — avoids inline onclick + global scope pollution
+        if (actions && actions.length) {
+          const actionsEl = item.querySelector('.alert-actions');
+          actions.forEach(function(a) {
+            const btn = document.createElement('button');
+            btn.className   = 'btn-ghost alert-action-btn';
+            btn.textContent = a.label;
+            btn.addEventListener('click', function() {
+              item.remove();
+              a.callback();
+            });
+            actionsEl.appendChild(btn);
+          });
+        }
+
+        panel.prepend(item);
+      }
+
+      // ─── Breadcrumb ────────────────────────────────────────────────────────
+      function renderBreadcrumb() {
+        const wrap = document.getElementById('breadcrumbPath');
+        wrap.innerHTML = '';
+        navStack.forEach(function(item, idx) {
+          const isLast = idx === navStack.length - 1;
+          const crumb  = document.createElement('span');
+          crumb.className   = 'crumb' + (isLast ? ' active' : '');
+          crumb.textContent = item.name;
+          crumb.title       = isLast ? '' : 'Go to ' + item.name;
+          if (!isLast) {
+            crumb.addEventListener('click', function() {
+              navStack = navStack.slice(0, idx + 1);
+              const top = navStack[navStack.length - 1];
+              if (top.token === 'HOME') { goHome(); return; }
+              loadFolder(top.token);
+            });
+          }
+          wrap.appendChild(crumb);
+          if (!isLast) {
+            const sep = document.createElement('span');
+            sep.className = 'separator';
+            sep.textContent = ' › ';
+            wrap.appendChild(sep);
+          }
+        });
+      }
+
+      // ─── Folder browser ────────────────────────────────────────────────────
+      function updateUseButtons() {
+        const has = !!currentSelection;
+        document.getElementById('useSourceBtn').disabled = !has;
+        document.getElementById('useTargetBtn').disabled = !has;
+      }
+
+      function markSelected(row) {
+        document.querySelectorAll('.folder-row').forEach(function(el) { el.classList.remove('selected'); });
+        if (row) row.classList.add('selected');
+      }
+
+      function goHome() {
+        navStack         = [{ token: 'HOME', name: 'Home' }];
+        currentView      = null;
+        currentSelection = null;
+        renderBreadcrumb();
+        updateUseButtons();
+        document.getElementById('browserTitle').textContent = 'Home';
+        document.getElementById('browserHint').textContent  = 'Choose a starting location';
+
+        const list = document.getElementById('folderList');
+        list.innerHTML = '';
+        [
+          { token: ROOT_TOKEN,   name: 'My Drive',       note: 'Browse your own folders' },
+          { token: SHARED_TOKEN, name: 'Shared with me', note: 'Browse folders shared with you' },
+        ].forEach(function(item) {
+          const row = document.createElement('div');
+          row.className = 'folder-row';
+          row.innerHTML =
+            '<div><div class="folder-name">' + esc(item.name) + '</div>' +
+            '<div class="folder-meta">' + esc(item.note) + '</div></div>' +
+            '<div class="folder-meta">Open →</div>';
+          row.addEventListener('click', function() {
+            currentSelection = { id: item.token, name: item.name, token: item.token, isVirtual: true };
+            markSelected(row);
+            updateUseButtons();
+          });
+          row.addEventListener('dblclick', function() {
+            navStack.push({ token: item.token, name: item.name });
+            loadFolder(item.token);
+          });
+          list.appendChild(row);
+        });
+      }
+
+      function loadFolder(token) {
+        document.getElementById('folderList').innerHTML = '<div class="empty-state">Loading…</div>';
+        currentSelection = null;
+        updateUseButtons();
+
+        google.script.run
+          .withSuccessHandler(function(view) {
+            currentView = view;
+            renderFolderView(view);
+          })
+          .withFailureHandler(function(err) {
+            addAlert('error', 'Could not open folder', err && err.message ? err.message : String(err));
+            if (navStack.length > 1) navStack.pop();
+            renderBreadcrumb();
+          })
+          .getFolderView(token);
+      }
+
+      function renderFolderView(view) {
+        document.getElementById('browserTitle').textContent = view.name;
+        document.getElementById('browserHint').textContent  =
+          view.token === SHARED_TOKEN
+            ? 'Shared folder listing'
+            : 'Single-click to select · Double-click to enter';
+
+        // Keep breadcrumb in sync when navigating
+        const top = navStack[navStack.length - 1];
+        if (top && top.token !== 'HOME' && top.token !== (view.id || view.token)) {
+          navStack[navStack.length - 1] = { token: view.id || view.token, name: view.name };
+        }
+        renderBreadcrumb();
+
+        const list = document.getElementById('folderList');
+        if (!view.children || !view.children.length) {
+          list.innerHTML = '<div class="empty-state">No subfolders here.</div>';
+          return;
+        }
+
+        list.innerHTML = '';
+        view.children.forEach(function(child) {
+          const row = document.createElement('div');
+          row.className = 'folder-row';
+
+          const left  = document.createElement('div');
+          left.innerHTML =
+            '<div class="folder-name">' + esc(child.name) + '</div>' +
+            '<div class="folder-meta">ID: ' + esc(child.id) + '</div>';
+          const right = document.createElement('div');
+          right.className   = 'folder-meta';
+          right.textContent = 'Open →';
+          row.appendChild(left);
+          row.appendChild(right);
+
+          row.addEventListener('click', function() {
+            currentSelection = { id: child.id, name: child.name, token: child.id, isVirtual: false };
+            markSelected(row);
+            updateUseButtons();
+          });
+          row.addEventListener('dblclick', function() {
+            navStack.push({ token: child.id, name: child.name });
+            loadFolder(child.id);
+          });
+          list.appendChild(row);
+        });
+      }
+
+      function enterSelected() {
+        if (!currentSelection) return;
+        navStack.push({ token: currentSelection.isVirtual ? currentSelection.token : currentSelection.id,
+                        name: currentSelection.name });
+        loadFolder(currentSelection.isVirtual ? currentSelection.token : currentSelection.id);
+      }
+
+      function goUp() {
+        if (!currentView || navStack.length <= 1) { goHome(); return; }
+        navStack.pop();
+        const top = navStack[navStack.length - 1];
+        if (top.token === 'HOME') { goHome(); return; }
+        loadFolder(top.token);
+      }
+
+      // ─── Source / destination assignment ───────────────────────────────────
+      function useSelectedAs(kind) {
+        if (!currentSelection) {
+          addAlert('warn', 'Nothing selected', 'Pick a folder before assigning it.');
+          return;
+        }
+        // Virtual-root handling — each token has a specific response.
+        if (currentSelection.isVirtual) {
+          const token = currentSelection.token;
+
+          // "Shared with me" is a listing page, not a real Drive folder.
+          // Individual shared folders (navigated into) work fine — only the
+          // SHARED_ROOT virtual token is blocked.
+          if (token === SHARED_TOKEN) {
+            addAlert('warn', '"Shared with me" is not a folder',
+              '"Shared with me" is a listing page, not a real Drive folder. Navigate into it and pick a specific shared folder to use as source or destination.');
+            return;
+          }
+
+          // My Drive root as destination — always allowed.
+          // Passes 'ROOT' to the backend; enqueueJob resolves it to the real folder ID.
+          if (token === ROOT_TOKEN && kind === 'target') {
+            // fall through — assignment continues below with id = 'ROOT'
+          } else if (token === ROOT_TOKEN && kind === 'source') {
+            // Gated by the Advanced Settings toggle — off by default to prevent
+            // accidentally copying the entire drive.
+            if (!advancedSettings.allowRootAsSource) {
+              addAlert('warn', 'My Drive root as source',
+                'Copying your entire My Drive root may be very slow. Enable "Allow My Drive root as source" in Advanced Settings to unlock this.');
+              return;
+            }
+            // Toggle is on — fall through to assignment below.
+          }
+        }
+        const entry = { id: currentSelection.id, name: currentSelection.name };
+        if (kind === 'source') {
+          selectedSource = entry;
+          document.getElementById('sourceName').textContent = entry.name;
+          document.getElementById('sourceMeta').textContent = 'Assigned as the copy source.';
+          addAlert('good', 'Source set', entry.name);
+        } else {
+          selectedTarget = entry;
+          document.getElementById('targetName').textContent = entry.name;
+          document.getElementById('targetMeta').textContent = 'Assigned as the destination.';
+          addAlert('good', 'Destination set', entry.name);
+        }
+        updateStartButton();
+      }
+
+      function updateStartButton() {
+        document.getElementById('startBtn').disabled = !(selectedSource && selectedTarget);
+      }
+
+      // ─── Advanced settings ─────────────────────────────────────────────────
+
+      function loadAdvancedSettings() {
+        google.script.run
+          .withSuccessHandler(function(s) {
+            if (s) advancedSettings = s;
+          })
+          .withFailureHandler(function() {})  // silent — defaults are fine
+          .getAdvancedSettings();
+      }
+
+      // ─── Account display ───────────────────────────────────────────────────
+
+      function loadAppInfo() {
+        google.script.run
+          .withSuccessHandler(function(info) {
+            if (!info) return;
+            appInfo = info;
+            const avatar = document.getElementById('accountAvatar');
+            if (!avatar) return;
+            if (info.email) {
+              // Initials: first character of the part before @
+              const initial = info.email.charAt(0).toUpperCase();
+              avatar.textContent = initial;
+              avatar.classList.remove('loading');
+              avatar.title = info.email;
+            } else {
+              avatar.textContent = '?';
+              avatar.classList.remove('loading');
+              avatar.title = 'Account';
+            }
+          })
+          .withFailureHandler(function() {
+            const avatar = document.getElementById('accountAvatar');
+            if (avatar) { avatar.textContent = '?'; avatar.classList.remove('loading'); }
+          })
+          .getAppInfo();
+      }
+
+      function toggleAccountPopover() {
+        const existing = document.getElementById('accountPopover');
+        if (existing) { existing.remove(); return; }
+
+        const email = appInfo.email || 'Unknown account';
+
+        const popover = document.createElement('div');
+        popover.className = 'account-popover';
+        popover.id = 'accountPopover';
+        popover.innerHTML =
+          '<div class="account-popover-head">' +
+            '<div class="account-popover-email">' + esc(email) + '</div>' +
+            '<div class="account-popover-note">D3 is copying files as this account</div>' +
+          '</div>' +
+          '<div style="padding:12px 16px 14px">' +
+            '<div style="font-size:0.78rem;color:var(--muted);line-height:1.55">' +
+              'To use a different account, open D3 in a ' +
+              '<strong style="color:var(--text)">private/incognito window</strong> ' +
+              'or a <strong style="color:var(--text)">separate browser profile</strong> ' +
+              'signed into that account.' +
+              '<div style="margin-top:7px;padding:7px 10px;border-radius:8px;' +
+                   'background:rgba(2,6,23,0.4);border:1px solid rgba(148,163,184,0.12);' +
+                   'font-size:0.73rem;color:rgba(148,163,184,0.55);line-height:1.45">' +
+                'There is no in-app account switching for Apps Script web apps — ' +
+                'the account is set at the browser OAuth level before the page loads.' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+
+        document.getElementById('accountWrap').appendChild(popover);
+
+        // Close when clicking anywhere outside the popover/avatar
+        setTimeout(function() {
+          document.addEventListener('click', function closePopover(e) {
+            const wrap = document.getElementById('accountWrap');
+            if (wrap && !wrap.contains(e.target)) {
+              const p = document.getElementById('accountPopover');
+              if (p) p.remove();
+              document.removeEventListener('click', closePopover);
+            }
+          });
+        }, 0);
+      }
+
+      function openAdvancedSettings() {
+        const old = document.getElementById('advSettingsOverlay');
+        if (old) old.remove();
+
+        const s = advancedSettings;
+
+        // Build hour options for the schedule picker (0–23, Pacific time)
+        const hourOptions = Array.from({ length: 24 }, function(_, h) {
+          const label = h === 0 ? '12:00 am' : h < 12 ? h + ':00 am' : h === 12 ? '12:00 pm' : (h - 12) + ':00 pm';
+          return '<option value="' + h + '"' + (s.scheduleHour === h ? ' selected' : '') + '>' + label + '</option>';
+        }).join('');
+
+        const overlay = document.createElement('div');
+        overlay.className = 'preflight-overlay';
+        overlay.id = 'advSettingsOverlay';
+
+        overlay.innerHTML =
+          '<div class="preflight-box" style="max-width:480px">' +
+            '<div class="preflight-header">' +
+              '<div class="preflight-title">Advanced settings</div>' +
+              '<div class="preflight-route" style="color:var(--muted);font-size:0.82rem">' +
+                'Changes take effect on the next job or batch run.' +
+              '</div>' +
+            '</div>' +
+            '<div class="preflight-body" style="display:block;padding-bottom:8px">' +
+
+              // ── Copy speed ────────────────────────────────────────────────
+              '<div class="adv-section-label">Copy speed</div>' +
+              '<div class="adv-row">' +
+                '<div class="copy">' +
+                  '<strong>Throttle level</strong>' +
+                  '<span>Normal: 150 items/batch · Careful: 75 · Slow: 30. Lower speeds reduce API usage and rate-limit risk.</span>' +
+                '</div>' +
+                '<select class="adv-select" id="advThrottle">' +
+                  '<option value="normal"'  + (s.throttle === 'normal'  ? ' selected' : '') + '>Normal</option>' +
+                  '<option value="careful"' + (s.throttle === 'careful' ? ' selected' : '') + '>Careful</option>' +
+                  '<option value="slow"'    + (s.throttle === 'slow'    ? ' selected' : '') + '>Slow</option>' +
+                '</select>' +
+              '</div>' +
+
+              // ── Defaults ──────────────────────────────────────────────────
+              '<div class="adv-section-label">Defaults</div>' +
+              '<div class="adv-row">' +
+                '<div class="copy">' +
+                  '<strong>Default conflict strategy</strong>' +
+                  '<span>Pre-selects the conflict option in the copy confirmation panel. You can still change it per job.</span>' +
+                '</div>' +
+                '<select class="adv-select" id="advConflict">' +
+                  '<option value="rename"'    + (s.defaultConflict === 'rename'    ? ' selected' : '') + '>Rename</option>' +
+                  '<option value="skip"'      + (s.defaultConflict === 'skip'      ? ' selected' : '') + '>Merge</option>' +
+                  '<option value="update"'    + (s.defaultConflict === 'update'    ? ' selected' : '') + '>Update</option>' +
+                  '<option value="overwrite"' + (s.defaultConflict === 'overwrite' ? ' selected' : '') + '>Overwrite</option>' +
+                '</select>' +
+              '</div>' +
+
+              // ── Power-user options ────────────────────────────────────────
+              '<div class="adv-section-label">Power-user options</div>' +
+              '<div class="adv-row">' +
+                '<div class="copy">' +
+                  '<strong>Allow My Drive root as source</strong>' +
+                  '<span>Lets you copy your entire My Drive. May be very slow for large drives.</span>' +
+                '</div>' +
+                '<label class="switch" id="advRootSwitch">' +
+                  '<input id="advRootAsSource" type="checkbox"' + (s.allowRootAsSource ? ' checked' : '') +
+                    ' onchange="document.getElementById(\'advRootSwitch\').classList.toggle(\'on\',this.checked)">' +
+                  '<span class="knob"></span>' +
+                '</label>' +
+              '</div>' +
+
+              // ── Scheduled copying ─────────────────────────────────────────
+              '<div class="adv-section-label">Scheduled copying</div>' +
+              '<div class="adv-row">' +
+                '<div class="copy">' +
+                  '<strong>Enable scheduled copying</strong>' +
+                  '<span>Automatically resume paused jobs once a day at the chosen time (Pacific). ' +
+                  'Uses a Google Apps Script time-based trigger — runs even when this tab is closed.</span>' +
+                '</div>' +
+                '<label class="switch" id="advSchedSwitch">' +
+                  '<input id="advScheduled" type="checkbox"' + (s.scheduledCopying ? ' checked' : '') +
+                    ' onchange="document.getElementById(\'advSchedSwitch\').classList.toggle(\'on\',this.checked);' +
+                               'document.getElementById(\'advSchedHourRow\').style.display=this.checked?\'flex\':\'none\'">' +
+                  '<span class="knob"></span>' +
+                '</label>' +
+              '</div>' +
+              '<div class="adv-row" id="advSchedHourRow" style="display:' + (s.scheduledCopying ? 'flex' : 'none') + '">' +
+                '<div class="copy">' +
+                  '<strong>Run at</strong>' +
+                  '<span>Pacific time (America/Los_Angeles). Google adjusts automatically for DST.</span>' +
+                '</div>' +
+                '<select class="adv-select" id="advSchedHour" style="min-width:120px">' +
+                  hourOptions +
+                '</select>' +
+              '</div>' +
+
+              // ── Export ────────────────────────────────────────────────────
+              '<div class="adv-section-label">Job history</div>' +
+              '<div class="adv-row">' +
+                '<div class="copy">' +
+                  '<strong>Export copy log</strong>' +
+                  '<span>Download job history as a CSV file. Includes all jobs currently in the queue (including completed ones not yet cleared).</span>' +
+                '</div>' +
+                '<button class="btn-ghost" onclick="exportJobLog()" style="flex-shrink:0">Export CSV</button>' +
+              '</div>' +
+
+            '</div>' +
+            '<div class="preflight-footer">' +
+              '<button class="btn-ghost"   onclick="closeAdvancedSettings(false)">Cancel</button>' +
+              '<button class="btn-primary" onclick="closeAdvancedSettings(true)">Save</button>' +
+            '</div>' +
+          '</div>';
+
+        if (s.allowRootAsSource) overlay.querySelector('#advRootSwitch').classList.add('on');
+        if (s.scheduledCopying)  overlay.querySelector('#advSchedSwitch').classList.add('on');
+
+        document.body.appendChild(overlay);
+      }
+
+      function closeAdvancedSettings(save) {
+        const overlay = document.getElementById('advSettingsOverlay');
+        if (!overlay) return;
+
+        if (save) {
+          const newSettings = {
+            throttle:          document.getElementById('advThrottle').value,
+            defaultConflict:   document.getElementById('advConflict').value,
+            allowRootAsSource: document.getElementById('advRootAsSource').checked,
+            scheduledCopying:  document.getElementById('advScheduled').checked,
+            scheduleHour:      parseInt(document.getElementById('advSchedHour').value, 10),
+          };
+          advancedSettings = newSettings;
+          google.script.run
+            .withSuccessHandler(function() {
+              if (newSettings.scheduledCopying) {
+                const h = newSettings.scheduleHour;
+                const label = h === 0 ? '12:00 am' : h < 12 ? h + ':00 am' : h === 12 ? '12:00 pm' : (h - 12) + ':00 pm';
+                addAlert('good', 'Schedule saved', 'D3 will resume paused jobs daily at ' + label + ' Pacific.');
+              }
+            })
+            .withFailureHandler(function(err) {
+              addAlert('error', 'Settings not saved', err && err.message ? err.message : String(err));
+            })
+            .saveAdvancedSettings(newSettings);
+        }
+
+        overlay.remove();
+      }
+
+      // ─── Preflight confirmation flow ───────────────────────────────────────
+      // startCopy() opens a confirmation panel that scans the source folder and
+      // checks storage before the job is created. The user reviews stats and
+      // picks a conflict strategy, then clicks "Add to queue".
+
+      function startCopy() {
+        if (!selectedSource || !selectedTarget) {
+          addAlert('warn', 'Choose both folders', 'A source and destination are required.');
+          return;
+        }
+        document.getElementById('startBtn').disabled = true;
+        openPreflightPanel();
+      }
+
+      function openPreflightPanel() {
+        const old = document.getElementById('preflightOverlay');
+        if (old) old.remove();
+
+        preflightScan    = null;
+        preflightStorage = null;
+        preflightPending = 2;   // waiting for two API calls
+
+        const overlay = document.createElement('div');
+        overlay.className = 'preflight-overlay';
+        overlay.id = 'preflightOverlay';
+        overlay.innerHTML =
+          '<div class="preflight-box">' +
+            '<div class="preflight-header">' +
+              '<div class="preflight-title">Ready to copy?</div>' +
+              '<div class="preflight-route">' +
+                esc(selectedSource.name) +
+                '<span class="arrow">→</span>' +
+                esc(selectedTarget.name) +
+              '</div>' +
+            '</div>' +
+            '<div class="preflight-loading" id="preflightLoading">' +
+              '<div class="scan-spinner"></div>' +
+              '<span>Scanning folder…</span>' +
+            '</div>' +
+            '<div class="preflight-body hidden" id="preflightBody"></div>' +
+            '<div class="preflight-footer">' +
+              '<button class="btn-ghost" onclick="closePreflightPanel()">Cancel</button>' +
+              '<button class="btn-primary" id="preflightConfirmBtn" onclick="confirmCopy()" disabled>' +
+                'Add to queue' +
+              '</button>' +
+            '</div>' +
+          '</div>';
+        document.body.appendChild(overlay);
+
+        // Fire both API calls in parallel — onPreflightData merges them
+        google.script.run
+          .withSuccessHandler(function(r) { preflightScan = r;    onPreflightData(); })
+          .withFailureHandler(function(e) {
+            closePreflightPanel();
+            addAlert('error', 'Scan failed', e && e.message ? e.message : String(e));
+            document.getElementById('startBtn').disabled = !(selectedSource && selectedTarget);
+          })
+          .scanFolder(selectedSource.id);
+
+        google.script.run
+          .withSuccessHandler(function(r) { preflightStorage = r; onPreflightData(); })
+          .withFailureHandler(function()  { preflightStorage = { unlimited: true }; onPreflightData(); })
+          .getStorageInfo();
+      }
+
+      function onPreflightData() {
+        preflightPending--;
+        if (preflightPending > 0) return;  // still waiting for the other call
+        renderPreflightResults();
+      }
+
+      function renderPreflightResults() {
+        const scan    = preflightScan;
+        const storage = preflightStorage;
+
+        // ── Item count ──────────────────────────────────────────────────────
+        const itemStr = scan.capped
+          ? (scan.itemCount.toLocaleString() + '+ items')
+          : (scan.itemCount.toLocaleString() + ' items');
+
+        // ── Size ────────────────────────────────────────────────────────────
+        // Drive API returns exact byte counts for regular files. Google Workspace
+        // files (Docs/Sheets/Slides/Forms) have no size in the API — they are
+        // stored as metadata and don't consume quota in bytes. So sizeBytes is
+        // exact for binary files and 0 for Google-native files. A fixed note
+        // below the stat always explains this.
+        let sizeStr;
+        if (scan.sizeBytes === 0) {
+          sizeStr = '0 B';
+        } else if (scan.sizeBytes < 1048576) {
+          sizeStr = Math.round(scan.sizeBytes / 1024) + ' KB';
+        } else if (scan.sizeBytes < 1073741824) {
+          sizeStr = scan.estimatedMB + ' MB';
+        } else {
+          sizeStr = (scan.sizeBytes / 1073741824).toFixed(2) + ' GB';
+        }
+
+        // ── Storage / risk ──────────────────────────────────────────────────
+        let availStr, riskLevel, riskMsg;
+        const sizeKnown = scan.sizeBytes > 0;
+
+        if (storage.unlimited) {
+          availStr  = 'Unlimited';
+          riskLevel = 'good';
+          riskMsg   = '✓ No storage limit';
+        } else if (!storage.availableBytes || storage.availableBytes < 0) {
+          availStr  = 'Unknown';
+          riskLevel = 'muted';
+          riskMsg   = 'ℹ Storage info unavailable';
+        } else {
+          const avGB = (storage.availableBytes / 1073741824).toFixed(1);
+          availStr   = avGB + ' GB free';
+
+          if (sizeKnown && scan.sizeBytes > storage.availableBytes) {
+            riskLevel = 'bad';
+            riskMsg   = '✗ Not enough space — copy will likely fail';
+          } else {
+            const afterBytes = storage.availableBytes - (sizeKnown ? scan.sizeBytes : 0);
+            const pctLeft    = storage.totalBytes > 0
+              ? (afterBytes / storage.totalBytes * 100) : 100;
+            if (pctLeft < 5) {
+              riskLevel = 'bad';
+              riskMsg   = '⚠ Less than 5% storage remaining after copy';
+            } else if (pctLeft < 20) {
+              riskLevel = 'warn';
+              riskMsg   = '⚠ Less than 20% storage remaining after copy';
+            } else {
+              riskLevel = 'good';
+              riskMsg   = '✓ Enough space available';
+            }
+          }
+        }
+
+        // Block confirm only when size is known and definitely exceeds available
+        const blocked = !storage.unlimited
+          && storage.availableBytes > 0
+          && sizeKnown
+          && scan.sizeBytes > storage.availableBytes;
+
+        // ── Build results HTML ──────────────────────────────────────────────
+        const body = document.getElementById('preflightBody');
+        body.innerHTML =
+          '<div class="preflight-stat">' +
+            '<span class="stat-label">Items to copy</span>' +
+            '<span class="stat-value">' + esc(itemStr) + '</span>' +
+          '</div>' +
+          '<div class="preflight-stat">' +
+            '<span class="stat-label">Size <span style="font-size:0.7rem;font-weight:400;color:rgba(148,163,184,0.5)">(API limitation — native Google Documents not counted)</span></span>' +
+            '<span class="stat-value">' + esc(sizeStr) + '</span>' +
+          '</div>' +
+          '<div class="preflight-stat">' +
+            '<span class="stat-label">Your free space</span>' +
+            '<span class="stat-value">' + esc(availStr) + '</span>' +
+          '</div>' +
+          '<div class="risk-badge ' + riskLevel + '">' + riskMsg + '</div>' +
+
+          '<div class="preflight-divider"></div>' +
+          '<div class="preflight-section-label">If a folder with the same name already exists at the destination:</div>' +
+          '<div class="conflict-picker">' +
+            '<div class="conflict-option">' +
+              '<input type="radio" name="preflightConflict" id="pc_rename" value="rename"' + (advancedSettings.defaultConflict === 'rename'    ? ' checked' : '') + '>' +
+              '<label for="pc_rename">' +
+                '<span class="opt-title">Rename</span>' +
+                '<span class="opt-desc">Keep both — add (copy) to new</span>' +
+              '</label>' +
+            '</div>' +
+            '<div class="conflict-option">' +
+              '<input type="radio" name="preflightConflict" id="pc_skip" value="skip"' + (advancedSettings.defaultConflict === 'skip'      ? ' checked' : '') + '>' +
+              '<label for="pc_skip">' +
+                '<span class="opt-title">Merge</span>' +
+                '<span class="opt-desc">Copy new files, keep existing</span>' +
+              '</label>' +
+            '</div>' +
+            '<div class="conflict-option">' +
+              '<input type="radio" name="preflightConflict" id="pc_update" value="update"' + (advancedSettings.defaultConflict === 'update'    ? ' checked' : '') + '>' +
+              '<label for="pc_update">' +
+                '<span class="opt-title">Update</span>' +
+                '<span class="opt-desc">Merge new, remove old not in source</span>' +
+              '</label>' +
+            '</div>' +
+            '<div class="conflict-option">' +
+              '<input type="radio" name="preflightConflict" id="pc_overwrite" value="overwrite"' + (advancedSettings.defaultConflict === 'overwrite' ? ' checked' : '') + '>' +
+              '<label for="pc_overwrite">' +
+                '<span class="opt-title">Overwrite</span>' +
+                '<span class="opt-desc">Replace all existing with new</span>' +
+              '</label>' +
+            '</div>' +
+          '</div>';
+
+        document.getElementById('preflightLoading').classList.add('hidden');
+        body.classList.remove('hidden');
+
+        const confirmBtn = document.getElementById('preflightConfirmBtn');
+        if (blocked) {
+          confirmBtn.textContent = 'Not enough space';
+          confirmBtn.disabled = true;
+        } else {
+          confirmBtn.textContent = 'Add to queue';
+          confirmBtn.disabled = false;
+        }
+      }
+
+      function closePreflightPanel() {
+        const overlay = document.getElementById('preflightOverlay');
+        if (overlay) overlay.remove();
+        document.getElementById('startBtn').disabled = !(selectedSource && selectedTarget);
+      }
+
+      function confirmCopy() {
+        const picked = document.querySelector('input[name="preflightConflict"]:checked');
+        const conflictStrategy = picked ? picked.value : 'rename';
+
+        // Read settings before closing the panel (DOM will be removed)
+        const settings = {
+          copyPermissions:  document.getElementById('copyPermissions').checked,
+          copyGoogleFiles:  document.getElementById('copyGoogleFiles').checked,
+          conflictStrategy: conflictStrategy,
+          // Pass the known total so processBatch skips countItems_ and the bar
+          // starts determinate. For capped scans (5000+) pass 0 so the backend
+          // counts accurately rather than using the capped estimate.
+          total:     (preflightScan && !preflightScan.capped) ? preflightScan.itemCount : 0,
+          sizeBytes: (preflightScan) ? preflightScan.sizeBytes : 0,
+        };
+
+        closePreflightPanel();
+
+        showQueueingNotice(selectedSource.name, selectedTarget.name);
+        startPolling();
+        addAlert('info', 'Job queued', selectedSource.name + ' → ' + selectedTarget.name);
+
+        google.script.run
+          .withSuccessHandler(function(data) {
+            renderJobsStatus(data);
+            document.getElementById('startBtn').disabled = !(selectedSource && selectedTarget);
+            if (!hasShownBackgroundPopup) {
+              hasShownBackgroundPopup = true;
+              setTimeout(showBackgroundPopup, 1800);
+            }
+          })
+          .withFailureHandler(function(err) {
+            removeQueueingNotice();
+            refreshJobListIfEmpty();
+            addAlert('error', 'Failed to start', err && err.message ? err.message : String(err));
+            document.getElementById('startBtn').disabled = !(selectedSource && selectedTarget);
+          })
+          .enqueueJob(selectedSource.id, selectedTarget.id, settings);
+      }
+
+      // A simple inline notice (not a fake job card) that says we're adding to queue.
+      // It disappears naturally when diffJobList receives the first real job data.
+      function showQueueingNotice(srcName, dstName) {
+        const list  = document.getElementById('jobList');
+        const empty = list.querySelector('.empty-queue');
+        if (empty) empty.remove();
+
+        setGlobalBarScanning(true);
+        document.getElementById('globalProgressWrap').classList.remove('hidden');
+
+        const notice = document.createElement('div');
+        notice.className = 'queue-notice';
+        notice.dataset.optimistic = 'true';
+        notice.innerHTML =
+          '<i class="notice-spin">⟳</i>' +
+          '<span>Adding to queue: <strong>' + esc(srcName) + '</strong> → <strong>' + esc(dstName) + '</strong></span>';
+        list.appendChild(notice);
+      }
+
+      function removeQueueingNotice() {
+        document.querySelectorAll('[data-optimistic]').forEach(function(el) { el.remove(); });
+      }
+
+      function refreshJobListIfEmpty() {
+        const list = document.getElementById('jobList');
+        if (!list.querySelector('.job-card, [data-optimistic]')) {
+          list.innerHTML = '<div class="empty-queue">No copy jobs yet.<br>' +
+            'Browse to a folder, assign source and destination, then click <strong>Start copy</strong>.</div>';
+          document.getElementById('globalProgressWrap').classList.add('hidden');
+        }
+      }
+
+      // Background-copy info banner — shown once per session, non-blocking.
+      // Inserts a dismissible banner between the global bar and the job list.
+      function showBackgroundPopup() {
+        if (document.getElementById('bgBanner')) return;
+        const banner = document.createElement('div');
+        banner.className = 'bg-banner';
+        banner.id = 'bgBanner';
+        banner.innerHTML =
+          '<div class="bg-banner-icon">☁️</div>' +
+          '<div class="bg-banner-body">' +
+            '<div class="bg-banner-title">Copying runs in the background</div>' +
+            '<div class="bg-banner-text">' +
+              'You can <strong>close this tab</strong> — D3 keeps copying on Google\'s servers. ' +
+              'Come back any time to check progress. Large folders may take ' +
+              '<strong>a few minutes</strong> due to Google API rate limits.' +
+            '</div>' +
+          '</div>' +
+          '<button class="bg-banner-dismiss" onclick="document.getElementById(\'bgBanner\').remove()">Dismiss</button>';
+
+        // Insert between the global progress bar and the job list
+        const jobList = document.getElementById('jobList');
+        jobList.parentNode.insertBefore(banner, jobList);
+      }
+
+      function doPauseJob(id) {
+        google.script.run
+          .withSuccessHandler(renderJobsStatus)
+          .withFailureHandler(function(err) { addAlert('error','Pause failed', err.message || String(err)); })
+          .pauseJob(id);
+      }
+
+      function doResumeJob(id) {
+        google.script.run
+          .withSuccessHandler(function(data) { renderJobsStatus(data); startPolling(); })
+          .withFailureHandler(function(err) { addAlert('error','Resume failed', err.message || String(err)); })
+          .resumeJob(id);
+      }
+
+      function doCancelJob(id) {
+        google.script.run
+          .withSuccessHandler(renderJobsStatus)
+          .withFailureHandler(function(err) { addAlert('error','Cancel failed', err.message || String(err)); })
+          .cancelJob(id);
+      }
+
+      function doClearJob(id) {
+        google.script.run
+          .withSuccessHandler(renderJobsStatus)
+          .withFailureHandler(function(err) { addAlert('error','Clear failed', err.message || String(err)); })
+          .clearJob(id);
+      }
+
+      function clearAllTerminal() {
+        google.script.run
+          .withSuccessHandler(renderJobsStatus)
+          .withFailureHandler(function(err) { addAlert('error','Clear all failed', err.message || String(err)); })
+          .clearAllTerminal();
+      }
+
+      function resetAllState() {
+        google.script.run
+          .withSuccessHandler(function() {
+            selectedSource = selectedTarget = currentSelection = null;
+            document.getElementById('sourceName').textContent = 'None';
+            document.getElementById('targetName').textContent = 'None';
+            document.getElementById('sourceMeta').textContent = 'Pick a folder and assign it as source.';
+            document.getElementById('targetMeta').textContent = 'Pick a folder and assign it as destination.';
+            document.getElementById('globalProgressWrap').classList.add('hidden');
+            document.getElementById('queueCounts').innerHTML = '';
+            document.getElementById('queueSub').textContent  = 'No jobs yet — add one above.';
+            document.getElementById('jobList').innerHTML =
+              '<div class="empty-queue">No copy jobs yet.<br>' +
+              'Browse to a folder, assign source and destination, then click <strong>Start copy</strong>.</div>';
+            stopPolling();
+            stopStoragePolling();
+            document.getElementById('storageRow').classList.add('hidden');
+            document.getElementById('quotaRow').classList.add('hidden');
+            removeQueueingNotice();
+            updateStartButton();
+            goHome();
+            addAlert('good', 'State reset', 'All jobs and copy state cleared.');
+            refreshStorage();
+            startStoragePolling();
+          })
+          .withFailureHandler(function(err) { addAlert('error','Reset failed', err.message || String(err)); })
+          .resetState();
+      }
+
+      // ─── Copy log export ───────────────────────────────────────────────────
+      // Formats the current job list as CSV and triggers a browser download.
+      // All formatting is done client-side from the last-polled jobs data —
+      // no extra backend call needed.
+      function exportJobLog() {
+        // Close the advanced settings modal first so the download isn't blocked.
+        const overlay = document.getElementById('advSettingsOverlay');
+        if (overlay) overlay.remove();
+
+        google.script.run
+          .withSuccessHandler(function(data) {
+            if (!data || !data.jobs || data.jobs.length === 0) {
+              addAlert('warn', 'Nothing to export', 'No jobs in the queue yet.');
+              return;
+            }
+
+            const cols = ['id','sourceName','destName','status','processed','total',
+                          'skipped','nativeSkipped','deleted','conflictStrategy',
+                          'copyPermissions','copyGoogleFiles','sizeBytes',
+                          'createdAt','updatedAt','lastError'];
+
+            const header = cols.join(',');
+            const rows   = data.jobs.map(function(job) {
+              return cols.map(function(col) {
+                let val = job[col];
+                if (val === undefined || val === null) val = '';
+                if (col === 'createdAt' || col === 'updatedAt') {
+                  val = val ? new Date(val).toISOString() : '';
+                }
+                // Wrap in quotes if value contains comma, quote, or newline
+                val = String(val);
+                if (val.search(/[,"\n]/) !== -1) val = '"' + val.replace(/"/g, '""') + '"';
+                return val;
+              }).join(',');
+            });
+
+            const csv  = [header].concat(rows).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = 'D3_copy_log_' + new Date().toISOString().slice(0, 10) + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          })
+          .withFailureHandler(function(err) {
+            addAlert('error', 'Export failed', err && err.message ? err.message : String(err));
+          })
+          .getJobsStatus();
+      }
+      function refreshJobs() {
+        google.script.run
+          .withSuccessHandler(renderJobsStatus)
+          .withFailureHandler(function(err) { console.warn('Poll failed:', err); })
+          .getJobsStatus();
+      }
+
+      function renderJobsStatus(data) {
+        if (!data) return;
+        const { jobs, summary } = data;
+
+        // ── Count pills ──
+        const countsEl = document.getElementById('queueCounts');
+        countsEl.innerHTML = '';
+        [['runningJobs','running'],['pendingJobs','pending'],['pausedJobs','paused'],
+         ['doneJobs','done'],['skippedJobs','skipped'],['errorJobs','error']].forEach(function(p) {
+          if (summary[p[0]] > 0) {
+            const pill = document.createElement('span');
+            pill.className   = 'count-pill ' + p[1];
+            pill.textContent = summary[p[0]] + ' ' + p[1];
+            countsEl.appendChild(pill);
+          }
+        });
+
+        // ── Sub-header ──
+        document.getElementById('queueSub').textContent = jobs.length === 0
+          ? 'No jobs yet — add one above.'
+          : summary.totalJobs + ' job' + (summary.totalJobs !== 1 ? 's' : '') +
+            (summary.runningJobs > 0 ? ' · copying now'         :
+             summary.pendingJobs > 0 ? ' · waiting to start'    : ' · all finished');
+
+        // ── Global progress bar ──
+        // Denominator excludes both conflict-skipped and native-skipped items —
+        // neither counts as "remaining work" against completion percentage.
+        const activeJobs     = jobs.filter(function(j) { return j.status !== 'cancelled'; });
+        const totalProcessed = activeJobs.reduce(function(s,j) { return s + j.processed; }, 0);
+        const totalItems     = activeJobs.reduce(function(s,j) { return s + (j.total - (j.skipped || 0) - (j.nativeSkipped || 0)); }, 0);
+        const isScanning     = totalItems === 0 && activeJobs.some(function(j) {
+          return j.status === 'running' || j.status === 'pending';
+        });
+        const allDone = activeJobs.length > 0 && activeJobs.every(function(j) {
+          return j.status === 'done' || j.status === 'skipped';
+        });
+
+        if (activeJobs.length > 0) {
+          document.getElementById('globalProgressWrap').classList.remove('hidden');
+          setGlobalBarScanning(isScanning);
+          if (!isScanning) {
+            const displayPct = allDone ? 100 : summary.overallPercent;
+            document.getElementById('globalBar').style.width = displayPct + '%';
+            document.getElementById('globalProgressText').textContent =
+              totalItems > 0 ? totalProcessed + ' / ' + totalItems + ' items' : totalProcessed + ' items';
+            document.getElementById('globalPercentText').textContent =
+              totalItems > 0 ? displayPct + '%' : '';
+          }
+        } else {
+          document.getElementById('globalProgressWrap').classList.add('hidden');
+          setGlobalBarScanning(false);
+        }
+
+        // ── Job list (in-place diff) ──
+        diffJobList(jobs);
+
+        // ── Update pending-copy bytes for storage bar overlay ──────────────
+        const newPendingBytes = jobs
+          .filter(function(j) { return j.status === 'pending' || j.status === 'running'; })
+          .reduce(function(s, j) { return s + (j.sizeBytes || 0); }, 0);
+        if (newPendingBytes !== pendingJobBytes) {
+          pendingJobBytes = newPendingBytes;
+          if (lastStorageInfo) renderStorageInfo(lastStorageInfo);
+        }
+
+        // ── Detect status transitions, fire one-shot actionable alerts ───────
+        jobs.forEach(function(job) {
+          const prev = prevJobStates[job.id];
+          // Fire an error alert exactly once per error occurrence (not on every poll)
+          if (job.status === 'error' && prev !== 'error') {
+            // Scroll the alerts panel into view so the user sees the action buttons
+            const alertsEl = document.getElementById('alertsPanel');
+            if (alertsEl) alertsEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            addAlert('error',
+              'Copy failed — ' + esc(job.sourceName || 'Job'),
+              'Use Retry to resume from the last checkpoint, or Cancel to abandon. Details are on the job card below.',
+              [
+                { label: 'Retry',  callback: function() { doResumeJob(job.id); } },
+                { label: 'Cancel', callback: function() { doCancelJob(job.id); } },
+              ]
+            );
+          }
+          prevJobStates[job.id] = job.status;
+        });
+        // Remove entries for jobs that were cleared from the server
+        Object.keys(prevJobStates).forEach(function(id) {
+          if (!jobs.find(function(j) { return j.id === id; })) delete prevJobStates[id];
+        });
+
+        // ── Polling control ──
+        const allSettled = jobs.length > 0 && jobs.every(function(j) {
+          return j.status === 'done' || j.status === 'error' || j.status === 'cancelled'
+              || j.status === 'skipped' || j.status === 'paused';
+        });
+        if (allSettled) stopPolling();
+
+        // ── Quota display ──────────────────────────────────────────────────
+        if (summary.quota) renderQuotaInfo(summary.quota);
+      }
+
+      function setGlobalBarScanning(scanning) {
+        const track = document.getElementById('globalBarTrack');
+        if (scanning) {
+          track.classList.add('scanning');
+          document.getElementById('globalProgressText').textContent = 'Counting items…';
+          document.getElementById('globalPercentText').textContent  = '';
+        } else {
+          track.classList.remove('scanning');
+        }
+      }
+
+      // ─── Quota display ─────────────────────────────────────────────────────
+      // Shows raw API call counts only — no percentage bars. Google doesn't
+      // expose remaining quota via any API, and commonly-cited free-tier limits
+      // (~20k reads / ~10k writes per day) vary by account type. Raw counts
+      // are honest; percentages would imply false precision.
+      function renderQuotaInfo(quota) {
+        const row   = document.getElementById('quotaRow');
+        const label = document.getElementById('quotaLabel');
+        const note  = document.getElementById('quotaNote');
+
+        if (!quota || (quota.reads === 0 && quota.writes === 0)) {
+          row.classList.add('hidden');
+          return;
+        }
+
+        row.classList.remove('hidden');
+
+        const resetH   = Math.ceil(quota.resetMinutes / 60);
+        const resetStr = quota.resetMinutes < 90
+          ? '~' + quota.resetMinutes + ' min'
+          : '~' + resetH + ' hr' + (resetH !== 1 ? 's' : '');
+
+        label.textContent = 'API calls today: ' +
+          quota.reads.toLocaleString()  + ' reads · ' +
+          quota.writes.toLocaleString() + ' writes' +
+          ' (resets in ' + resetStr + ')';
+
+        // Community-cited free-tier limits as a reference point, not a guarantee.
+        note.textContent = 'commonly cited limits: ~20k reads / ~10k writes per day';
+      }
+
+      // ── In-place diff: update existing cards, add new ones, remove stale ones ──
+      function diffJobList(jobs) {
+        const list = document.getElementById('jobList');
+
+        // Always remove queuing notices when real data arrives
+        list.querySelectorAll('[data-optimistic]').forEach(function(el) { el.remove(); });
+
+        // Build index of existing real cards
+        const existing = {};
+        list.querySelectorAll('.job-card[data-job-id]').forEach(function(el) {
+          existing[el.dataset.jobId] = el;
+        });
+
+        if (jobs.length === 0 && Object.keys(existing).length === 0) {
+          list.innerHTML = '<div class="empty-queue">No copy jobs yet.<br>' +
+            'Browse to a folder, assign source and destination, then click <strong>Start copy</strong>.</div>';
+          return;
+        }
+
+        const emptyEl = list.querySelector('.empty-queue');
+        if (emptyEl && jobs.length > 0) emptyEl.remove();
+
+        const seen = new Set();
+
+        jobs.forEach(function(job) {
+          seen.add(job.id);
+          let card = existing[job.id];
+          if (card) {
+            updateJobCard(card, job);
+          } else {
+            card = document.createElement('div');
+            card.dataset.jobId = job.id;
+            card.className     = 'job-card ' + job.status;
+            card.innerHTML     = buildCardHTML(job);
+            list.appendChild(card);
+          }
+        });
+
+        // Remove cards for jobs that were cleared server-side
+        Object.keys(existing).forEach(function(id) {
+          if (!seen.has(id)) existing[id].remove();
+        });
+      }
+
+      // Update a card's contents in-place — no innerHTML wipe, no flicker
+      function updateJobCard(card, job) {
+        card.className = 'job-card ' + job.status;
+
+        const badge = card.querySelector('.job-badge');
+        if (badge) {
+          badge.className   = 'job-badge ' + job.status;
+          badge.textContent = statusLabel(job);
+        }
+
+        const barWrap = card.querySelector('.job-bar-wrap');
+        const barFill = card.querySelector('.job-bar-fill');
+        const barSkip = card.querySelector('.job-bar-skip');
+        if (barWrap && barFill) {
+          const indeterminate = needsIndeterminate(job);
+          const bp = barPercent(job);
+          const sp = skipPercent(job);
+          barWrap.classList.toggle('indeterminate', indeterminate);
+          barFill.style.width = indeterminate ? '45%' : bp + '%';
+          if (barSkip) {
+            barSkip.style.left  = bp + '%';
+            barSkip.style.width = sp + '%';
+          }
+        }
+
+        const countEl = card.querySelector('.job-count');
+        if (countEl) countEl.textContent = countLabel(job);
+
+        const phaseEl = card.querySelector('.job-phase');
+        if (phaseEl) phaseEl.textContent = phaseLabel(job);
+
+        const errBox = card.querySelector('.job-error-box');
+        if (errBox) {
+          if (job.lastError) {
+            // Show a short friendly hint plus the technical detail collapsed underneath.
+            // The alert panel (above) has the Retry/Cancel action buttons.
+            errBox.innerHTML =
+              '<span style="font-weight:600">↑ See alert above for Retry / Cancel options</span>' +
+              '<div style="opacity:0.65;margin-top:3px;font-size:0.75rem;word-break:break-word">' +
+              esc(job.lastError) + '</div>';
+            errBox.classList.remove('hidden');
+          } else {
+            errBox.classList.add('hidden');
+          }
+        }
+
+        const settingsEl = card.querySelector('.job-settings');
+        if (settingsEl && job.id) {
+          settingsEl.innerHTML =
+            '<span class="settings-tag">' + (job.copyPermissions ? '🔑 Permissions on' : 'No permissions') + '</span>' +
+            '<span class="settings-tag">' + (job.copyGoogleFiles ? 'Google files on' : 'No Google files') + '</span>' +
+            '<span class="settings-tag">' + conflictStrategyLabel(job.conflictStrategy) + '</span>';
+        }
+
+        updateJobButtons(card, job);
+      }
+
+      // Builds the full inner HTML for a job card on first creation.
+      // Subsequent updates are done in-place by updateJobCard to avoid flicker.
+      function buildCardHTML(job) {
+        return '<div class="job-card-inner">' +
+          '<div class="job-top">' +
+            '<div class="job-route">' +
+              esc(job.sourceName || '') +
+              ' <span style="opacity:.45">→</span> ' +
+              esc(job.destName   || '') +
+            '</div>' +
+            '<div class="job-badge ' + job.status + '">' + statusLabel(job) + '</div>' +
+          '</div>' +
+          '<div class="job-bar-wrap' + (needsIndeterminate(job) ? ' indeterminate' : '') + '">' +
+            '<div class="job-bar-fill" style="width:' + barPercent(job) + '%"></div>' +
+            '<div class="job-bar-skip" style="left:' + barPercent(job) + '%;width:' + skipPercent(job) + '%"></div>' +
+          '</div>' +
+          '<div class="job-meta">' +
+            '<span class="job-count">'  + countLabel(job) + '</span>' +
+            '<div  class="job-phase">'  + phaseLabel(job) + '</div>' +
+            '<div class="job-settings">' +
+              '<span class="settings-tag">' + (job.copyPermissions ? '🔑 Permissions on' : 'No permissions') + '</span>' +
+              '<span class="settings-tag">' + (job.copyGoogleFiles ? 'Google files on' : 'No Google files') + '</span>' +
+              '<span class="settings-tag">' + conflictStrategyLabel(job.conflictStrategy) + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="job-error-box' + (job.lastError ? '' : ' hidden') + '">' +
+            (job.lastError
+              ? '<span style="font-weight:600">↑ See alert above for Retry / Cancel options</span>' +
+                '<div style="opacity:0.65;margin-top:3px;font-size:0.75rem;word-break:break-word">' + esc(job.lastError) + '</div>'
+              : '') +
+          '</div>' +
+          buildActionButtons(job) +
+        '</div>';
+      }
+
+      function buildActionButtons(job) {
+        const terminal = job.status === 'done' || job.status === 'cancelled' || job.status === 'error' || job.status === 'skipped';
+        if (terminal) {
+          return '<div class="job-actions">' +
+            '<button class="btn-ghost" onclick="doClearJob(\'' + job.id + '\')">Clear</button>' +
+            '</div>';
+        }
+        const canPause  = job.status === 'running' || job.status === 'pending';
+        const canResume = job.status === 'paused' || job.status === 'error';
+        const canCancel = true;
+        return '<div class="job-actions">' +
+          '<button class="btn-ghost" onclick="doPauseJob(\''  + job.id + '\')" ' + (canPause  ? '' : 'disabled') + '>Pause</button>' +
+          '<button class="btn-ghost" onclick="doResumeJob(\'' + job.id + '\')" ' + (canResume ? '' : 'disabled') + '>Resume</button>' +
+          '<button class="btn-danger" onclick="doCancelJob(\'' + job.id + '\')" ' + (canCancel ? '' : 'disabled') + '>Cancel</button>' +
+          '</div>';
+      }
+
+      function updateJobButtons(card, job) {
+        const actionsEl = card.querySelector('.job-actions');
+        if (!actionsEl || !job.id) return;
+        actionsEl.outerHTML = buildActionButtons(job);
+      }
+
+      // ─── Card helper functions ──────────────────────────────────────────────
+      function statusLabel(job) {
+        const labels = {
+          pending: 'In Queue', running: 'Running',
+          paused: 'Paused', done: 'Done ✓', error: 'Error',
+          cancelled: 'Cancelled', skipped: 'Done ✓',
+        };
+        return labels[job.status] || job.status;
+      }
+
+      // Maps the backend conflictStrategy string to the display label shown in
+      // settings tags (backend uses 'skip' for what the UI calls 'Merge').
+      function conflictStrategyLabel(strategy) {
+        const labels = { rename: 'Rename', skip: 'Merge', update: 'Update', overwrite: 'Overwrite' };
+        return labels[strategy] || strategy;
+      }
+
+      function needsIndeterminate(job) {
+        // If processed > 0 but total reads as 0, that is an invalid transient state:
+        // a poll raced with processBatch activation after a resume. Total will correct
+        // on the next poll — treat as determinate rather than flipping the bar gray.
+        if (job.processed > 0 && job.total === 0) return false;
+        return job.total === 0 && (job.status === 'running' || job.status === 'pending');
+      }
+
+      function barPercent(job) {
+        // Both 'done' and 'skipped' are terminal states — bar shows full green.
+        if (job.status === 'done' || job.status === 'skipped') return 100;
+        // For running merge jobs: green fills (processed / effective), where effective
+        // excludes both conflict-skipped and native-skipped items (neither is real work).
+        if (job.total > 0) {
+          const effective = job.total - (job.skipped || 0) - (job.nativeSkipped || 0);
+          if (effective <= 0) return 100;
+          return Math.min(100, Math.floor(job.processed / effective * 100));
+        }
+        return 0;
+      }
+
+      // Returns the width % for the orange skip-overflow segment.
+      // Starts at the right edge of the green fill; represents conflict-skipped items
+      // as a fraction of the effective (non-skipped) total.
+      function skipPercent(job) {
+        const skippedN = job.skipped || 0;
+        if (skippedN <= 0 || job.total <= 0) return 0;
+        const effective = job.total - skippedN - (job.nativeSkipped || 0);
+        if (effective <= 0) return 0;
+        return Math.min(50, Math.round(skippedN / effective * 100));
+      }
+
+      function countLabel(job) {
+        if (job.status === 'cancelled') return '';
+        const skippedN       = job.skipped       || 0;
+        const deletedN       = job.deleted        || 0;
+        const nativeSkippedN = job.nativeSkipped  || 0;
+        const skipSuffix    = skippedN       > 0 ? ' · ' + skippedN       + ' skipped'              : '';
+        const deleteSuffix  = deletedN       > 0 ? ' · ' + deletedN       + ' deleted'              : '';
+        const nativeSuffix  = nativeSkippedN > 0 ? ' · ' + nativeSkippedN + ' Google files skipped' : '';
+        const suffix = skipSuffix + deleteSuffix + nativeSuffix;
+        if (job.status === 'skipped') {
+          return job.processed + ' / ' + job.total + ' items' + suffix;
+        }
+        if (job.total > 0) return job.processed + ' / ' + job.total + ' items' + suffix;
+        if (job.processed > 0) return job.processed + ' items' + suffix;
+        return '';
+      }
+
+      // ─── ETA calculation ───────────────────────────────────────────────────
+      // Returns a human-readable ETA string, or null if not enough data yet.
+      // Requires a known total (total > 0) and at least one measured batch (itemsPerSecond > 0).
+      // Only visible for multi-batch jobs (>150 items) — small single-batch jobs
+      // finish before the frontend can poll a running state with speed data.
+      function etaLabel(job) {
+        if (!job.itemsPerSecond || job.itemsPerSecond <= 0) return null;
+        if (!job.total || job.total <= 0) return null;
+        const effective  = job.total - (job.skipped || 0) - (job.nativeSkipped || 0);
+        const remaining  = effective - job.processed;
+        if (remaining <= 0) return 'almost done';
+        const etaSec = remaining / job.itemsPerSecond;
+        if (etaSec < 10)   return 'almost done';
+        if (etaSec < 90)   return '~' + Math.round(etaSec) + ' sec remaining';
+        if (etaSec < 3600) return '~' + Math.round(etaSec / 60) + ' min remaining';
+        return '>1 hour remaining';
+      }
+
+      function phaseLabel(job) {
+        if (job.status === 'pending')   return 'Waiting — will start when the current job finishes';
+        if (job.status === 'running') {
+          // When total===0 we're still in countItems_() — show the global bar label.
+          if (job.total === 0)     return 'Counting items…';
+          if (job.processed === 0) return 'Starting up…';
+          // Show ETA when throughput data is available; fall back to folder name.
+          const eta = etaLabel(job);
+          if (eta) return eta;
+          if (job.currentFolder)   return 'Copying: ' + job.currentFolder;
+          return '';
+        }
+        if (job.status === 'paused')    return 'Paused — click Resume to continue';
+        if (job.status === 'done') {
+          if (job.conflictStrategy === 'update' && (job.deleted || 0) > 0) {
+            return 'Completed — ' + job.deleted + ' old item' + (job.deleted !== 1 ? 's' : '') + ' removed';
+          }
+          return 'Completed successfully';
+        }
+        if (job.status === 'skipped')   return 'Completed — some existing files were skipped';
+        if (job.status === 'cancelled') return 'Cancelled';
+        if (job.status === 'error')     return 'Failed — click Resume to retry';
+        return '';
+      }
+
+      // ─── Storage display ───────────────────────────────────────────────────
+      function refreshStorage() {
+        google.script.run
+          .withSuccessHandler(renderStorageInfo)
+          .withFailureHandler(function() {})   // silent — storage is non-critical
+          .getStorageInfo();
+      }
+
+      function renderStorageInfo(info) {
+        lastStorageInfo = info;  // cache for re-render when pendingJobBytes changes
+        const row     = document.getElementById('storageRow');
+        const label   = document.getElementById('storageLabel');
+        const fill    = document.getElementById('storageFill');
+        const pending = document.getElementById('storagePending');
+        const pct     = document.getElementById('storagePct');
+
+        if (!info || info.unlimited) {
+          row.classList.remove('hidden');
+          label.textContent  = 'Storage: unlimited';
+          fill.style.width   = '0%';
+          fill.className     = 'storage-fill good';
+          pending.style.width = '0%';
+          pct.textContent    = '';
+          return;
+        }
+
+        if (!info.totalBytes || info.totalBytes <= 0) {
+          row.classList.add('hidden');
+          return;
+        }
+
+        const usedPct    = Math.min(100, Math.round(info.usedBytes / info.totalBytes * 100));
+        const freePct    = 100 - usedPct;
+        const colorClass = freePct < 5 ? 'bad' : freePct < 20 ? 'warn' : 'good';
+
+        // Pending segment: how much of total quota the queued jobs would consume.
+        // Capped so used + pending never exceeds 100%.
+        const pendingPct = pendingJobBytes > 0
+          ? Math.min(freePct, Math.round(pendingJobBytes / info.totalBytes * 100))
+          : 0;
+
+        const freeGB = (info.availableBytes / 1073741824).toFixed(1);
+        const totGB  = (info.totalBytes     / 1073741824).toFixed(0);
+
+        row.classList.remove('hidden');
+        label.textContent   = freeGB + ' GB free of ' + totGB + ' GB';
+        fill.style.width    = usedPct + '%';
+        fill.className      = 'storage-fill ' + colorClass;
+        pending.style.width = pendingPct + '%';
+        pct.textContent     = freePct + '% free';
+        pct.style.color     = colorClass === 'bad'  ? 'var(--bad)'  :
+                              colorClass === 'warn' ? 'var(--warn)' : 'var(--muted)';
+      }
+
+      function startStoragePolling() {
+        if (storageTimer) return;
+        storageTimer = setInterval(refreshStorage, 30000);
+      }
+
+      function stopStoragePolling() {
+        if (storageTimer) { clearInterval(storageTimer); storageTimer = null; }
+      }
+
+      // ─── Polling ───────────────────────────────────────────────────────────
+      function startPolling() {
+        if (pollTimer) return;
+        pollTimer = setInterval(refreshJobs, 2000);
+      }
+
+      function stopPolling() {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      }
+
+      // ─── Init ──────────────────────────────────────────────────────────────
+      window.addEventListener('load', function() {
+        goHome();
+        refreshJobs();
+        startPolling();
+        refreshStorage();       // immediate storage read on load
+        startStoragePolling();  // refresh every 30s
+        loadAdvancedSettings(); // hydrate advancedSettings from backend
+        loadAppInfo();          // populate account avatar
+      });
+    </script>
+  </body>
+</html>
